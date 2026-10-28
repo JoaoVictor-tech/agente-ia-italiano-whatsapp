@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Teste Rápido - Painel Gomme Fenice{% endblock %}
+{% block content %}
+<p><a href="/dashboard/teste-rapido">&larr; voltar</a></p>
+<h1>Teste Rápido <small>{{ run.sender_phone }} &rarr; {{ run.receiver_phone }}</small></h1>
+
+<p>
+  <span class="badge {{ 'badge-transferred' if run.status == 'finished' else 'badge-stage' }}">{{ run.status }}</span>
+  <span class="badge badge-stage">turno {{ run.turns_done }}/{{ run.max_turns }}</span>
+  {% if conversation %}<span class="badge badge-stage">estágio: {{ conversation.stage }}</span>{% endif %}
+  <span class="badge badge-stage">persona: {{ run.llm_provider }}:{{ run.llm_model }}</span>
+  <span class="badge badge-paused">custo da persona: US$ {{ "%.5f"|format(run.total_cost_usd) }}</span>
+</p>
+
+{% if turn_error %}
+<p style="color: #92400e; font-size: 13px;">Não deu pra avançar o turno agora ({{ turn_error }}) - tentando de novo automaticamente.</p>
+{% endif %}
+
+<div class="row">
+  <div style="flex: 2">
+    <h3>Conversa</h3>
+    <div
+      {% if run.status != 'finished' %}
+      hx-get="/dashboard/teste-rapido/{{ run.id }}" hx-trigger="every 4s" hx-select="#timeline" hx-target="#timeline" hx-swap="outerHTML"
+      {% endif %}
+    >
+    <div id="timeline">
+      {% if not conversation %}
+        <p class="hint">Aguardando a conversa aparecer (a entrega pela Helena pode levar até alguns minutos)...</p>
+      {% endif %}
+      {% for m in messages %}
+        <div class="bubble {{ m.role }}">
+          <small>{{ m.role }} · {{ m.created_at.strftime("%H:%M:%S") }}{% if m.model %} · {{ m.model }}{% endif %}</small><br />
+          {{ m.content }}
+        </div>
+      {% endfor %}
+      {% if conversation and not messages %}
+        <p class="hint">Conversa encontrada, aguardando primeira resposta...</p>
+      {% endif %}
+    </div>
+    </div>
+  </div>
+
+  <div style="flex: 1">
+    <h3>Persona</h3>
+    <pre style="white-space: pre-wrap; font-size: 13px;">{{ run.persona_prompt }}</pre>
+  </div>
+</div>
+{% endblock %}

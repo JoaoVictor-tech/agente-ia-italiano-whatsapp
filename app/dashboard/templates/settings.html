@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Configurações - Painel Gomme Fenice{% endblock %}
+{% block content %}
+<h1>Configurações do agente</h1>
+
+<form method="post" action="/dashboard/settings">
+
+  <div class="card">
+    <h3>Provedor e modelo de LLM</h3>
+    <div class="field">
+      <label for="model_choice">Modelo ativo (usado em todas as conversas a partir de agora)</label>
+      <select id="model_choice" name="model_choice">
+        {% for provider, models in model_catalog.items() %}
+        <optgroup label="{{ provider_labels.get(provider, provider) }}">
+          {% for model_id, info in models.items() %}
+          <option value="{{ provider }}::{{ model_id }}" {% if active_choice == provider ~ '::' ~ model_id %}selected{% endif %}>
+            {{ info.label }} ({{ model_id }})
+          </option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+      <div class="hint">A troca vale a partir da próxima mensagem recebida - não precisa reiniciar nada.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Modelo de voz (respostas em áudio)</h3>
+    <div class="field">
+      <label for="tts_model">Modelo de voz (Gemini TTS)</label>
+      <select id="tts_model" name="tts_model">
+        {% for model_id, info in tts_model_catalog.items() %}
+        <option value="{{ model_id }}" {% if active_tts_model == model_id %}selected{% endif %}>
+          {{ info.label }} ({{ model_id }}) - US$ {{ "%.2f"|format(info.usd_output_per_million) }}/milhão de tokens de áudio
+        </option>
+        {% endfor %}
+      </select>
+      <div class="hint">A troca vale a partir da próxima resposta em áudio. Usa a chave Gemini do .env do servidor; a voz (GEMINI_TTS_VOICE) também fica no .env.</div>
+    </div>
+    <div class="field">
+      <label style="font-weight: normal;">
+        <input type="checkbox" name="audio_replies_enabled" value="1" style="width: auto;" {% if audio_replies_enabled %}checked{% endif %} />
+        Responder em áudio quando o cliente enviar áudio
+      </label>
+      <div class="hint">
+        Desmarcando, o agente sempre responde em texto, mesmo quando o cliente mandar áudio.
+        O entendimento do áudio recebido (transcrição) continua funcionando normalmente - isso só afeta a resposta.
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Chaves de API por provedor</h3>
+    <p class="hint">Deixe em branco para manter a chave já salva. As chaves ficam criptografadas no banco, nunca em texto puro.</p>
+
+    {% for provider in providers %}
+    <div class="key-row">
+      <label style="min-width: 140px; margin-bottom: 0;">{{ provider_labels.get(provider, provider) }}</label>
+      <input type="password" name="{{ provider }}_key" placeholder="{{ 'já configurada - deixe em branco para manter' if key_status.get(provider) else 'nenhuma chave configurada' }}" autocomplete="off" />
+      {% if key_status.get(provider) %}
+        <span class="key-status-ok">✓ configurada</span>
+        <label style="font-weight: normal; font-size: 12px; white-space: nowrap;">
+          <input type="checkbox" name="clear_{{ provider }}" value="1" style="width: auto;" /> remover
+        </label>
+      {% else %}
+        <span class="key-status-missing">não configurada</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+
+    <p class="hint">Obs.: a transcrição do áudio recebido e a resposta em áudio usam a GEMINI_API_KEY do .env
+    do servidor, independente das chaves acima - estas valem só para a conversa (LLM).</p>
+  </div>
+
+  <div class="card">
+    <h3>Plataforma de atendimento Helena</h3>
+    <p class="hint">
+      Tokens e IDs da Helena (mensagens, tags, arquivos, painel CRM e equipe de transferência) para os dois
+      ambientes. Um campo em branco aqui cai automaticamente no valor do <code>.env</code> do servidor, se houver.
+      O campo <strong>Token de mensagens</strong> é obrigatório para o ambiente funcionar.
+    </p>
+
+    {% for env, label in [("producao", "Produção (WhatsApp real da Gomme Fenice)"), ("teste", "Teste (sandbox)")] %}
+    <h4 style="margin: 16px 0 8px;">{{ label }}</h4>
+    <div class="field" style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:220px;">
+        <label for="helena_{{ env }}_message_token">Token de mensagens</label>
+        <input type="text" id="helena_{{ env }}_message_token" name="helena_{{ env }}_message_token" value="{{ helena_config[env].message_token }}" autocomplete="off" />
+      </div>
+      <div style="flex:1; min-width:220px;">
+        <label for="helena_{{ env }}_tag_token">Token de tags</label>
+        <input type="text" id="helena_{{ env }}_tag_token" name="helena_{{ env }}_tag_token" value="{{ helena_config[env].tag_token }}" autocomplete="off" />
+      </div>
+      <div style="flex:1; min-width:220px;">
+        <label for="helena_{{ env }}_file_token">Token de arquivos/mídia</label>
+        <input type="text" id="helena_{{ env }}_file_token" name="helena_{{ env }}_file_token" value="{{ helena_config[env].file_token }}" autocomplete="off" />
+      </div>
+    </div>
+    <div class="field" style="display:flex; gap:12px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:220px;">
+        <label for="helena_{{ env }}_department_id">ID da equipe (transferência p/ humano)</label>
+        <input type="text" id="helena_{{ env }}_department_id" name="helena_{{ env }}_department_id" value="{{ helena_config[env].department_id }}" autocomplete="off" />
+      </div>
+      <div style="flex:1; min-width:220px;">
+        <label for="helena_{{ env }}_panel_id">ID do painel CRM</label>
+        <input type="text" id="helena_{{ env }}_panel_id" name="helena_{{ env }}_panel_id" value="{{ helena_config[env].panel_id }}" autocomplete="off" />
+      </div>
+      <div style="flex:1; min-width:220px;">
+        <label for="helena_{{ env }}_step_id_novo_lead">ID da etapa "Novo lead"</label>
+        <input type="text" id="helena_{{ env }}_step_id_novo_lead" name="helena_{{ env }}_step_id_novo_lead" value="{{ helena_config[env].step_id_novo_lead }}" autocomplete="off" />
+      </div>
+      <div style="flex:1; min-width:220px;">
+        <label for="helena_{{ env }}_step_id_em_atendimento">ID da etapa "Em atendimento"</label>
+        <input type="text" id="helena_{{ env }}_step_id_em_atendimento" name="helena_{{ env }}_step_id_em_atendimento" value="{{ helena_config[env].step_id_em_atendimento }}" autocomplete="off" />
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="card">
+    <h3>Status das integrações</h3>
+    <p class="hint">Somente leitura - confirmadas no <code>.env</code> do servidor, nunca editáveis por aqui.</p>
+    <div class="key-row"><label style="min-width:220px; margin-bottom:0;">Gemini (transcrição e voz)</label>{% if integration_status.gemini_audio %}<span class="key-status-ok">✓ configurada</span>{% else %}<span class="key-status-missing">não configurada</span>{% endif %}</div>
+  </div>
+
+  <div class="card">
+    <h3>Prompt do sistema (persona Matteo, regras, mensagens padrão - em italiano)</h3>
+    <div class="field">
+      <textarea name="system_prompt">{{ prompt_value }}</textarea>
+      <div class="hint">
+        Enviado a cada resposta, junto com a data/hora da Itália, os avisos ativos e os dados já coletados
+        (calculados pelo sistema - não escreva data aqui).
+        {% if using_custom_prompt %}<strong>Este é um prompt customizado</strong> - marque a caixa abaixo para voltar ao padrão.{% endif %}
+      </div>
+    </div>
+    <label style="font-weight: normal; font-size: 13px;">
+      <input type="checkbox" name="reset_prompt" value="1" style="width: auto;" /> restaurar o prompt padrão (descarta o texto acima)
+    </label>
+  </div>
+
+  <div class="save-bar">
+    <button type="submit">Salvar configurações</button>
+  </div>
+</form>
+{% endblock %}

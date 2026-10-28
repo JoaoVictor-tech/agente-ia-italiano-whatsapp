@@ -1,0 +1,182 @@
+[
+  {
+    "nome": "coleta_um_dado_por_volta",
+    "mensagens": [
+      "ciao, mi servono delle gomme",
+      "205/55 R16",
+      "quattro",
+      "invernali",
+      "nuove",
+      "giro quasi sempre in città"
+    ],
+    "esperado": {
+      "motivo": "dati_completi",
+      "slots": {
+        "Misura": "205/55 R16",
+        "Quantità": "4",
+        "Stagione": "Invernale",
+        "Nuovo/Usato": "Nuovo",
+        "Utilizzo": "Città"
+      },
+      "proibito": [
+        "euro",
+        "michelin",
+        "pirelli",
+        "disponibili"
+      ]
+    },
+    "resultado_esperado": "Raccoglie i cinque dati chiedendone uno per messaggio, senza mai richiedere un dato già dato, e alla fine dice che la richiesta passa a un esperto di Gomme Fenice per disponibilità e prezzo."
+  },
+  {
+    "nome": "tutto_in_un_messaggio",
+    "mensagens": [
+      "buongiorno, vorrei 4 gomme invernali nuove 205/55 R16, faccio tanti km in autostrada"
+    ],
+    "esperado": {
+      "motivo": "dati_completi",
+      "slots": {
+        "Misura": "205/55 R16",
+        "Quantità": "4",
+        "Stagione": "Invernale",
+        "Nuovo/Usato": "Nuovo",
+        "Utilizzo": "Tanti km"
+      },
+      "ultima_sem_pergunta": true,
+      "proibito": [
+        "euro",
+        "michelin",
+        "disponibili"
+      ]
+    },
+    "resultado_esperado": "Il cliente ha dato tutto in una volta: non chiede nessun altro dato e chiude con il testo approvato \"DATI COMPLETI\" (\"ho tutto! Ora verifichiamo la soluzione Gomme Fenice più adatta alle tue esigenze per disponibilità e prezzo\"), nello stesso messaggio. Questo testo è quello approvato dal cliente Gomme Fenice: non è un errore."
+  },
+  {
+    "nome": "non_conosce_la_misura",
+    "mensagens": [
+      "ciao",
+      "non so che misura ho"
+    ],
+    "esperado": {
+      "slots_ausentes": [
+        "Misura"
+      ],
+      "ultima_com_pergunta": false,
+      "proibito": [
+        "euro",
+        "michelin"
+      ]
+    },
+    "resultado_esperado": "Quando il cliente dice di non conoscere la misura, chiede una foto della scritta sul fianco del pneumatico, senza insistere con la misura."
+  },
+  {
+    "nome": "chiede_prezzo_senza_misura",
+    "mensagens": [
+      "quanto costano 4 gomme?"
+    ],
+    "esperado": {
+      "slots_ausentes": [
+        "Misura"
+      ],
+      "proibito": [
+        "euro",
+        "michelin",
+        "disponibili"
+      ]
+    },
+    "resultado_esperado": "Non dà prezzi: spiega in una frase che serve prima la misura e la chiede, con un esempio di formato."
+  },
+  {
+    "nome": "chiede_prezzo_con_dati_sufficienti",
+    "mensagens": [
+      "vorrei 4 gomme invernali nuove 205/55 R16",
+      "mi dici quanto vengono?"
+    ],
+    "esperado": {
+      "motivo": "richiesta_prezzo",
+      "proibito": [
+        "euro",
+        "michelin",
+        "disponibili"
+      ]
+    },
+    "resultado_esperado": "Con misura, quantità, stagione e condizione già raccolte, una domanda sul prezzo porta subito al passaggio a un esperto di Gomme Fenice, senza dare cifre e senza continuare a chiedere dati."
+  },
+  {
+    "nome": "chiede_operatore",
+    "mensagens": [
+      "voglio parlare con una persona"
+    ],
+    "esperado": {
+      "motivo": "richiesta_operatore",
+      "ultima_sem_pergunta": true,
+      "proibito": [
+        "euro",
+        "michelin"
+      ]
+    },
+    "resultado_esperado": "Passa subito a un esperto di Gomme Fenice, in una frase breve, senza chiedere altri dati e senza chiedere il permesso."
+  },
+  {
+    "nome": "domanda_tecnica_fuori_flusso",
+    "mensagens": [
+      "secondo te conviene mettere le catene o le gomme invernali in Trentino?"
+    ],
+    "esperado": {
+      "motivo": "dubbio_tecnico",
+      "proibito": [
+        "euro",
+        "michelin"
+      ]
+    },
+    "resultado_esperado": "Non risponde nel merito di una domanda tecnica e non improvvisa: passa la richiesta a un esperto di Gomme Fenice."
+  },
+  {
+    "nome": "correzione_del_cliente",
+    "mensagens": [
+      "mi servono 2 gomme estive 225/45 R17",
+      "scusa, anzi no: invernali"
+    ],
+    "esperado": {
+      "slots": {
+        "Misura": "225/45 R17",
+        "Quantità": "2",
+        "Stagione": "Invernale"
+      },
+      "proibito": [
+        "euro",
+        "michelin"
+      ]
+    },
+    "resultado_esperado": "Accetta la correzione (vale l'ultima informazione), non ripete i dati già dati e prosegue con il dato che manca."
+  },
+  {
+    "nome": "messaggio_incomprensibile",
+    "mensagens": [
+      "asdfgh",
+      "asdfgh"
+    ],
+    "esperado": {
+      "motivo": "messaggio_poco_chiaro",
+      "proibito": [
+        "euro",
+        "michelin"
+      ]
+    },
+    "resultado_esperado": "Chiede un chiarimento una sola volta; se il messaggio resta incomprensibile, passa la richiesta a un esperto di Gomme Fenice invece di insistere."
+  },
+  {
+    "nome": "foto_del_fianco",
+    "mensagens": [
+      "[FOTO] Il cliente ha inviato una foto."
+    ],
+    "esperado": {
+      "motivo": "foto_misura",
+      "ultima_sem_pergunta": true,
+      "proibito": [
+        "euro",
+        "michelin"
+      ]
+    },
+    "resultado_esperado": "Conferma di aver ricevuto la foto, non prova a leggere la misura e passa la richiesta a un operatore che la controlla."
+  }
+]

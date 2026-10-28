@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Conversas - Painel Gomme Fenice{% endblock %}
+{% block content %}
+<h1>Conversas</h1>
+<div hx-get="/dashboard/" hx-trigger="every 5s" hx-select="table" hx-target="table" hx-swap="outerHTML">
+<table>
+  <thead>
+    <tr>
+      <th>Ambiente</th>
+      <th>Contato</th>
+      <th>Telefone</th>
+      <th>Estagio</th>
+      <th>Ultima mensagem</th>
+      <th>Status</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for c in conversations %}
+    <tr>
+      <td><span class="badge {{ 'badge-transferred' if c.environment == 'producao' else 'badge-paused' }}">{{ c.environment }}</span></td>
+      <td>{{ c.name or "(sem nome)" }}</td>
+      <td>{{ c.phone or "-" }}</td>
+      <td><span class="badge badge-stage">{{ c.stage }}</span></td>
+      <td>
+        {% set last = last_messages.get(c.session_id) %}
+        {% if last %}
+          <small>{{ last.role }}:</small> {{ last.content[:80] }}
+        {% else %}
+          -
+        {% endif %}
+      </td>
+      <td>
+        {% if c.paused_by_human %}<span class="badge badge-paused">com humano</span>{% endif %}
+        {% if c.transferred_at %}<span class="badge badge-transferred">transferido</span>{% endif %}
+        {% if quality_flags.get(c.session_id) %}
+          <span class="badge badge-flag">{{ quality_flags[c.session_id] }} alerta(s)</span>
+        {% endif %}
+      </td>
+      <td><a href="/dashboard/conversations/{{ c.session_id }}">abrir</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7">Nenhuma conversa ainda.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

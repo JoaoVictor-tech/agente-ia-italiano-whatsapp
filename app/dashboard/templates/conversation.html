@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ conversation.name or conversation.session_id }} - Painel Gomme Fenice{% endblock %}
+{% block content %}
+<p><a href="/dashboard/">&larr; voltar</a></p>
+<h1>{{ conversation.name or "(sem nome)" }} <small>{{ conversation.phone or "" }}</small></h1>
+
+<p>
+  <span class="badge {{ 'badge-transferred' if conversation.environment == 'producao' else 'badge-paused' }}">{{ conversation.environment }}</span>
+  <span class="badge badge-stage">estagio: {{ conversation.stage }}</span>
+  {% if conversation.paused_by_human %}<span class="badge badge-paused">com humano</span>{% endif %}
+  {% if conversation.transferred_at %}<span class="badge badge-transferred">transferido em {{ conversation.transferred_at }}</span>{% endif %}
+  - custo total desta conversa: <strong>US$ {{ "%.4f"|format(total_cost) }}</strong>
+</p>
+
+<div class="row">
+  <div style="flex: 2">
+    <h3>Conversa</h3>
+    <div hx-get="/dashboard/conversations/{{ conversation.session_id }}" hx-trigger="every 5s" hx-select="#timeline" hx-target="#timeline" hx-swap="outerHTML">
+    <div id="timeline">
+      {% for m in messages %}
+        <div class="bubble {{ m.role }}">
+          <small>{{ m.role }} · {{ m.created_at.strftime("%H:%M:%S") }}{% if m.model %} · {{ m.model }}{% endif %}</small><br />
+          {{ m.content }}
+          {% if m.cost_usd %}<br /><small>tokens in={{ m.input_tokens }} out={{ m.output_tokens }} cache_read={{ m.cache_read_tokens }} custo=US$ {{ "%.5f"|format(m.cost_usd) }}</small>{% endif %}
+          {% if m.audio_cost_usd %}<br /><small>{{ m.audio_provider }} · custo áudio=US$ {{ "%.5f"|format(m.audio_cost_usd) }}</small>{% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    </div>
+
+    {% if not conversation.paused_by_human %}
+    <form method="post" action="/dashboard/conversations/{{ conversation.session_id }}/handoff">
+      <button type="submit">Assumir conversa (pausar o bot)</button>
+    </form>
+    {% else %}
+    <form method="post" action="/dashboard/conversations/{{ conversation.session_id }}/release">
+      <button type="submit">Devolver ao bot</button>
+    </form>
+    <form method="post" action="/dashboard/conversations/{{ conversation.session_id }}/send">
+      <input type="text" name="text" placeholder="Mensagem manual..." style="width: 60%" required />
+      <button type="submit">Enviar</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div style="flex: 1">
+    <h3>Eventos / ferramentas usadas</h3>
+    <ul>
+      {% for e in events %}
+        <li>
+          <small>{{ e.created_at.strftime("%H:%M:%S") }}</small>
+          {% if e.type in quality_event_types %}
+            <span class="badge badge-flag">{{ e.type }}</span>
+          {% else %}
+            <strong>{{ e.type }}</strong>
+          {% endif %}
+          <br /><small>{{ e.payload }}</small>
+        </li>
+      {% else %}
+        <li>Nenhum evento ainda.</li>
+      {% endfor %}
+    </ul>
+
+    <h3>Dados coletados</h3>
+    <pre>{{ conversation.slots }}</pre>
+  </div>
+</div>
+{% endblock %}

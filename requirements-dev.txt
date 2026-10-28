@@ -1,0 +1,4 @@
+# Testes (tests/), fora da imagem de producao. Executor: `deepeval test run tests/`.
+-r requirements.txt
+deepeval==4.2.8
+pytest==9.1.1

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Base de Conhecimento - Painel Gomme Fenice{% endblock %}
+{% block content %}
+<h1>Base de conhecimento (avisos)</h1>
+<p class="hint">
+  Use aqui para feriados, promoções exclusivas ou qualquer aviso temporário que o Matteo precisa saber -
+  sem mexer no prompt principal (persona, regras de preço/estoque, protocolo de imagens), que fica intocado
+  em <a href="/dashboard/settings">Configurações</a>. Todo aviso <strong>ativo</strong> abaixo é incluído
+  automaticamente na próxima mensagem - desativar remove na hora, sem precisar apagar o histórico.
+</p>
+
+<div class="card">
+  <h3>Novo aviso</h3>
+  <form method="post" action="/dashboard/base-conhecimento">
+    <div class="field">
+      <label for="content">Texto do aviso (o Matteo vai ler exatamente assim)</label>
+      <textarea id="content" name="content" style="min-height: 100px;" placeholder="Ex: Promoção: pneus aro 15 com 10% de desconto à vista até 20/08/2026." required></textarea>
+    </div>
+    <div class="field">
+      <label for="label">Nome deste aviso (opcional)</label>
+      <input type="text" id="label" name="label" placeholder="Ex: Chiuso 15/08, Promo invernali..." />
+      <div class="hint">Ajuda a identificar o aviso depois na lista abaixo. Pode deixar em branco.</div>
+    </div>
+    <div class="save-bar">
+      <button type="submit">Salvar aviso (fica ativo imediatamente)</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Avisos cadastrados</h3>
+  <p class="hint">Marcados como "ativo" entram no prompt agora. Desativados ficam guardados aqui, prontos pra reativar quando precisar de novo.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Criado em</th>
+        <th>Nome</th>
+        <th>Texto</th>
+        <th>Status</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for entry in entries %}
+      <tr>
+        <td style="white-space:nowrap;">{{ entry.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+        <td>{{ entry.label or "(sem nome)" }}</td>
+        <td style="max-width:360px;">
+          <details>
+            <summary>{{ entry.content[:60] }}{% if entry.content|length > 60 %}…{% endif %}</summary>
+            <pre>{{ entry.content }}</pre>
+          </details>
+        </td>
+        <td>
+          {% if entry.active %}
+          <span class="key-status-ok">✓ ativo</span>
+          {% else %}
+          <span class="key-status-missing">desativado</span>
+          {% endif %}
+        </td>
+        <td>
+          <form class="inline" method="post" action="/dashboard/base-conhecimento/{{ entry.id }}/toggle">
+            {% if entry.active %}
+            <input type="hidden" name="active" value="0" />
+            <button type="submit">Desativar</button>
+            {% else %}
+            <input type="hidden" name="active" value="1" />
+            <button type="submit">Ativar</button>
+            {% endif %}
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" class="hint">Nenhum aviso cadastrado ainda.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

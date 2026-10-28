@@ -1,0 +1,30 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.12.5
+# 2.10.1+ exigido pelo deepeval (requirements-dev.txt).
+pydantic-settings==2.15.0
+SQLAlchemy==2.0.36
+greenlet==3.1.1
+asyncpg==0.30.0
+alembic==1.14.0
+redis==5.2.1
+# SDK da OpenAI: base do ChatOpenAI/ChatDeepSeek do LangChain.
+openai>=1.109.1,<3
+# SDK do Gemini: transcricao (app/stt.py), voz (app/tts.py) e base do ChatGoogleGenerativeAI.
+google-genai==2.11.0
+# Motor v2 (app/motor_v2.py): LangGraph orquestra o turno e os chat models do LangChain falam
+# com cada provedor (app/llm_providers/chat_models.py) - Gemini (principal), OpenAI e DeepSeek.
+langgraph==1.2.14
+langchain-core==1.6.7
+langchain-openai==1.6.7
+langchain-google-genai==4.3.7
+langchain-deepseek==1.1.1
+# Observabilidade (app/observabilidade.py) - desligada sem LANGFUSE_PUBLIC_KEY/SECRET_KEY.
+# O pacote `langchain` e' exigido pelo CallbackHandler do Langfuse.
+langfuse==4.17.0
+langchain==1.4.3
+httpx==0.28.1
+jinja2==3.1.5
+python-multipart==0.0.20
+cryptography==44.0.0
+tzdata==2025.2

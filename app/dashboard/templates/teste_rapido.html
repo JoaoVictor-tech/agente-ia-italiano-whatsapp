@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}Teste Rápido - Painel Gomme Fenice{% endblock %}
+{% block content %}
+<h1>Teste Rápido</h1>
+<p class="hint">
+  Simula uma conversa real via Helena, sem precisar do WhatsApp: um canal manda mensagens fingindo
+  ser o cliente (guiado por uma persona gerada por IA), o outro é o próprio agente sendo testado.
+</p>
+
+{% if channels_error %}
+<div class="card">
+  <p style="color: #991b1b;">Não foi possível carregar a lista de canais da Helena: {{ channels_error }}</p>
+</div>
+{% endif %}
+
+<form method="post" action="/dashboard/teste-rapido/start">
+  <div class="card">
+    <h3>Canais</h3>
+    <div class="row">
+      <div class="field" style="flex: 1">
+        <label for="sender_phone">Canal remetente (finge ser o cliente)</label>
+        <select id="sender_phone" name="sender_phone" required>
+          <option value="" disabled {% if default_sender_phone not in channels|map(attribute='number')|list %}selected{% endif %}>Selecione um canal</option>
+          {% for ch in channels %}
+          <option value="{{ ch.number }}" {% if ch.number == default_sender_phone %}selected{% endif %}>
+            {{ (ch.identity or {}).get('displayName', ch.number) }} - {{ ch.numberFormatted or ch.number }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field" style="flex: 1">
+        <label for="receiver_phone">Canal receptor (o agente sendo testado)</label>
+        <select id="receiver_phone" name="receiver_phone" required>
+          <option value="" disabled {% if default_receiver_phone not in channels|map(attribute='number')|list %}selected{% endif %}>Selecione um canal</option>
+          {% for ch in channels %}
+          <option value="{{ ch.number }}" {% if ch.number == default_receiver_phone %}selected{% endif %}>
+            {{ (ch.identity or {}).get('displayName', ch.number) }} - {{ ch.numberFormatted or ch.number }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <p class="hint">Já vem pré-selecionado o par confirmado como estável (11900000001 → 1130000002) - outros números podem estar com a instância desconectada na Helena e a mensagem nunca chega. Só troque se tiver certeza que o canal está ativo.</p>
+    <div class="field">
+      <label for="activation_code">Código de ativação (após "#teste-")</label>
+      <input type="text" id="activation_code" name="activation_code" value="ee6" required style="max-width: 160px" />
+      <div class="hint">Comando enviado antes da primeira mensagem, para rotear pro bot certo dentro do canal receptor.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Persona do cliente simulado</h3>
+    <div class="field">
+      <label for="extra_instructions">Instrução extra para gerar a persona (opcional)</label>
+      <input type="text" id="extra_instructions" name="extra_instructions" placeholder="ex.: cliente indeciso comparando HR-V e CR-V" />
+    </div>
+    <button
+      type="button"
+      hx-post="/dashboard/teste-rapido/generate-persona"
+      hx-include="#extra_instructions"
+      hx-target="#persona_prompt"
+      hx-swap="innerHTML"
+      hx-indicator="#gerando-persona"
+    >
+      Gerar persona com IA
+    </button>
+    <span id="gerando-persona" class="htmx-indicator hint">gerando...</span>
+    <div class="field" style="margin-top: 10px">
+      <label for="persona_prompt">Prompt da persona (editável)</label>
+      <textarea id="persona_prompt" name="persona_prompt" required placeholder="Clique em 'Gerar persona com IA' acima, ou escreva a sua própria."></textarea>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Duração</h3>
+    <div class="field">
+      <label for="max_turns">Máximo de turnos do cliente simulado</label>
+      <input type="number" id="max_turns" name="max_turns" value="8" min="1" max="30" style="max-width: 100px" />
+    </div>
+  </div>
+
+  <div class="save-bar">
+    <button type="submit">Iniciar teste</button>
+  </div>
+</form>
+
+<h3>Testes anteriores</h3>
+<table>
+  <thead>
+    <tr><th>Iniciado em</th><th>Remetente</th><th>Receptor</th><th>Status</th><th>Turnos</th><th>Modelo</th><th>Custo (US$)</th><th></th></tr>
+  </thead>
+  <tbody>
+    {% for run in runs %}
+    <tr>
+      <td>{{ run.created_at.strftime("%d/%m %H:%M") }}</td>
+      <td>{{ run.sender_phone }}</td>
+      <td>{{ run.receiver_phone }}</td>
+      <td><span class="badge {{ 'badge-transferred' if run.status == 'finished' else 'badge-stage' }}">{{ run.status }}</span></td>
+      <td>{{ run.turns_done }}/{{ run.max_turns }}</td>
+      <td>{{ run.llm_provider }}:{{ run.llm_model }}</td>
+      <td>{{ "%.5f"|format(run.total_cost_usd) }}</td>
+      <td><a href="/dashboard/teste-rapido/{{ run.id }}">ver conversa</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8">Nenhum teste ainda.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

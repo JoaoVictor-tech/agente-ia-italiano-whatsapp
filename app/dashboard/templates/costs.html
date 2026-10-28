@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Custos - Painel Gomme Fenice{% endblock %}
+{% block content %}
+<h1>Custo por LLM</h1>
+<p class="hint">
+  Total em atendimentos reais: <strong>US$ {{ "%.4f"|format(total_atendimentos_cost) }}</strong> ·
+  Total em testes (aba Teste Rápido): <strong>US$ {{ "%.4f"|format(total_testes_cost) }}</strong>
+</p>
+
+<div class="row">
+  <div style="flex: 1">
+    <h3>Atendimentos (conversas reais)</h3>
+    <table>
+      <thead>
+        <tr><th>Modelo</th><th>Conversas</th><th>Custo (US$)</th><th>Tokens in</th><th>Tokens out</th><th>Via cache</th></tr>
+      </thead>
+      <tbody>
+        {% for row in by_model_atendimentos %}
+        <tr>
+          <td>{{ row.model }}</td>
+          <td>{{ row.conversas }}</td>
+          <td>{{ "%.4f"|format(row.cost or 0) }}</td>
+          <td>{{ row.input_tokens or 0 }}</td>
+          <td>{{ row.output_tokens or 0 }}</td>
+          <td>{{ row.cache_read_tokens or 0 }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6">Sem dados ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="flex: 1">
+    <h3>Testes (Teste Rápido)</h3>
+    <table>
+      <thead>
+        <tr><th>Modelo</th><th>Testes</th><th>Turnos</th><th>Custo (US$)</th></tr>
+      </thead>
+      <tbody>
+        {% for row in by_model_testes %}
+        <tr>
+          <td>{{ row.llm_provider }}:{{ row.llm_model }}</td>
+          <td>{{ row.testes }}</td>
+          <td>{{ row.turnos or 0 }}</td>
+          <td>{{ "%.4f"|format(row.cost or 0) }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">Sem dados ainda.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<h1>Custo de áudio (transcrição + voz)</h1>
+<p class="hint">
+  Total: <strong>US$ {{ "%.4f"|format(total_audio_cost) }}</strong> · transcrição e síntese de voz pelo Gemini,
+  cobradas por token (o número real de tokens vem no retorno da API).
+</p>
+<table>
+  <thead>
+    <tr><th>Serviço</th><th>Mensagens</th><th>Custo (US$)</th></tr>
+  </thead>
+  <tbody>
+    {% for row in by_audio_provider %}
+    <tr>
+      <td>
+        {% if row.audio_provider == "gemini_audio" %}Gemini (transcrição de áudio recebido)
+        {% elif row.audio_provider.startswith("gemini_tts:") %}Gemini TTS · {{ row.audio_provider.split(":", 1)[1] }} (síntese de voz enviada)
+        {% else %}{{ row.audio_provider }}
+        {% endif %}
+      </td>
+      <td>{{ row.mensagens }}</td>
+      <td>{{ "%.4f"|format(row.cost or 0) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="3">Sem dados ainda.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h1>Custo por dia</h1>
+<table>
+  <thead>
+    <tr><th>Dia</th><th>Custo (US$)</th><th>Tokens entrada</th><th>Tokens saida</th><th>Tokens via cache</th></tr>
+  </thead>
+  <tbody>
+    {% for row in by_day %}
+    <tr>
+      <td>{{ row.day }}</td>
+      <td>{{ "%.4f"|format(row.cost or 0) }}</td>
+      <td>{{ row.input_tokens or 0 }}</td>
+      <td>{{ row.output_tokens or 0 }}</td>
+      <td>{{ row.cache_read_tokens or 0 }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5">Sem dados ainda.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h1>Custo por conversa (top 30)</h1>
+<table>
+  <thead><tr><th>Sessao</th><th>Custo (US$)</th></tr></thead>
+  <tbody>
+    {% for row in by_conversation %}
+    <tr>
+      <td><a href="/dashboard/conversations/{{ row.session_id }}">{{ row.session_id }}</a></td>
+      <td>{{ "%.4f"|format(row.cost or 0) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="2">Sem dados ainda.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

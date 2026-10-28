@@ -1,0 +1,46 @@
+services:
+  api:
+    build: .
+    container_name: agente_gomme_api
+    env_file: .env
+    restart: unless-stopped
+    ports:
+      # So acesso local - o publico entra por um proxy reverso (nginx) na frente.
+      - "127.0.0.1:8124:8000"
+    depends_on:
+      # Espera o Postgres aceitar conexao - sem isto o `alembic upgrade head` da primeira subida
+      # falha (visto no deploy de 30/09/2026) e o container so se recupera no restart.
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: >
+      sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: agente_gomme_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: agente_gomme
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: agente_gomme
+    volumes:
+      - agente_gomme_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agente_gomme -d agente_gomme"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "127.0.0.1:5424:5432"
+
+  redis:
+    image: redis:7-alpine
+    container_name: agente_gomme_redis
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6424:6379"
+
+volumes:
+  agente_gomme_pgdata:
